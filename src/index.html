@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Realmath Visualizer</title>
+  <meta itemprop="name" content="Realmath Visualizer">
+  <meta name="twitter:title" content="Realmath Visualizer">
+  <meta property="og:title" content="Realmath Visualizer">
+  <meta property="og:site_name" content="Realmath Visualizer">
+  <meta name="description" content="">
+  <meta itemprop="description" content="">
+  <meta property="og:description" content="">
+  <meta name="twitter:description" content="">
+  <script crossorigin="anonymous" src="./external/xrextras/xrextras.js"></script>
+  <script crossorigin="anonymous" src="./external/landing-page/landing-page.js"></script>
+  <script crossorigin="anonymous" src="./external/xr/xr.js" async="true" data-preload-chunks="face, slam">
+  </script>
+
+<!-- Copyright (c) 2022 8th Wall, Inc. -->
+<!-- head.html is optional; elements will be added to your html head before app.js is loaded. -->
+<script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.min.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "computeengine": "https://unpkg.com/@cortex-js/compute-engine?module"
+    }
+  }
+</script>
+
+<script type="module">
+  import * as CE from 'computeengine';
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+  import { ParametricGeometry } from 'three/addons/geometries/ParametricGeometry.js';
+  import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+  import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+  import { Line2 } from 'three/addons/lines/Line2.js';
+	import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+  window.CE = {...CE};
+  window.THREE = { ...THREE };
+  window.THREE.GLTFLoader = GLTFLoader;
+  window.THREE.ParametricGeometry = ParametricGeometry;
+  window.THREE.LineGeometry = LineGeometry;
+  window.THREE.LineMaterial = LineMaterial;
+  window.THREE.Line2 = Line2;
+  window.THREE.CSS2DRenderer = CSS2DRenderer;
+  window.THREE.CSS2DObject = CSS2DObject;
+</script>
+
+<!-- Use "8thwall:" meta tags to hook into 8th Wall's build process and developer tools. -->
+<meta name="8thwall:package" content="@8thwall.xrextras"/>
+<meta name="8thwall:package" content="@8thwall.landing-page"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+
+<script src="//cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.7/dat.gui.min.js" crossorigin="anonymous"></script>
+
+
+</head>
+
+<body>
+<script src="bundle.js"></script>
+<!-- Copyright (c) 2021 8th Wall, Inc. -->
+<!-- body.html is optional; elements will be added to your html body after app.js is loaded. -->
+
+</body>
+
+</html>
