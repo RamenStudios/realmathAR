@@ -1,34 +1,29 @@
-// Copyright (c) 2021 8th Wall, Inc.
-//
-// app.js is the main entry point for your 8th Wall app. Code here will execute after head.html
-// is loaded, and before body.html is loaded.
+// app.js is the main entry point for your three.js 8th Wall app.
 
-import './index.css'
-import {clippingPlaneScenePipelineModule} from './threejs-scene-init'
-import * as camerafeedHtml from './camerafeed.html'
+import {initScenePipelineModule} from './threejs-scene-init'
+import * as THREE from 'three';
 
-const onxrloaded = () => {
-  // Add a canvas to the document for our xr scene.
-  document.body.insertAdjacentHTML('beforeend', camerafeedHtml)
+window.THREE = THREE
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
+const onxrloaded = () => {  
   XR8.addCameraPipelineModules([  // Add camera pipeline modules.
     // Existing pipeline modules.
     XR8.GlTextureRenderer.pipelineModule(),      // Draws the camera feed.
     XR8.Threejs.pipelineModule(),                // Creates a ThreeJS AR Scene.
     XR8.XrController.pipelineModule(),           // Enables SLAM tracking.
-    window.LandingPage.pipelineModule(),         // Detects unsupported browsers and gives hints.
+    LandingPage.pipelineModule(),         // Detects unsupported browsers and gives hints.
     XRExtras.FullWindowCanvas.pipelineModule(),  // Modifies the canvas to fill the window.
     XRExtras.Loading.pipelineModule(),           // Manages the loading screen on startup.
     XRExtras.RuntimeError.pipelineModule(),      // Shows an error image on runtime error.
     // Custom pipeline modules.
-    clippingPlaneScenePipelineModule(),  // Sets up the threejs camera and scene content.
+    initScenePipelineModule(),  // Sets up the threejs camera and scene content.
   ])
 
   const canvas = document.getElementById('camerafeed')
-
+  console.log(canvas)
   // Open the camera and start running the camera run loop.
   XR8.run({canvas})
 }
 
-// Show loading screen before the full XR library has been loaded.
-XRExtras.Loading.showLoading({onxrloaded})
+window.XR8 ? onxrloaded() : window.addEventListener('xrloaded', onxrloaded)

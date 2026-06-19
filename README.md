@@ -1,49 +1,40 @@
-### Your Exported Project
-This zip contains your project source code, assets, image targets, and configuration needed to build and publish your 8th Wall project. It does not connect to any 8th Wall services, so will work even after the 8th Wall servers are shut down.
+# three.js: World Effects (SLAM)
 
-### Setup
-If node/npm are not installed, install using https://github.com/nvm-sh/nvm or https://nodejs.org/en/download.
+This sample contains a basic three.js scene integrated with the 8th Wall Engine Binary.
 
-Run `npm install` in this folder.
+![Virtual cube aligned to the floor of a room](./public/preview.jpg)
 
-### Development
-Run `npm run serve` to run the development server.
+<details><summary>Try it out</summary>
 
-#### Testing on Mobile
-To test your project on mobile devices, especially for AR experiences that require camera access, you'll need to serve your development server over HTTPS. We recommend using [ngrok](https://ngrok.com/) to create a secure tunnel to your local server. After setting up ngrok, add the following configuration to `config/webpack.config.js` under the `devServer` section:
+https://8thwall.org/threejs-world-effects-example/
 
-```javascript
-devServer: {
-  // ... existing config
-  allowedHosts: ['.ngrok-free.dev']
-}
+<img alt="QR Code for the preview link" src="https://8th.io/qr?v=2&url=https://8thwall.org/threejs-world-effects-example/" width=250 height=250 />
+
+</details>
+
+## Usage
+
+1. On this repository, click **Code** > **Download ZIP**. If you clone the repository instead, make sure you have Git LFS installed and run `git lfs pull`
+2. Unzip the folder to the location you'd like to work in
+3. `npm install`
+4. `npm run serve`
+5. To connect to a mobile device, follow [these instructions](https://8th.io/test-on-mobile)
+6. Recommended: Track your files using [git](https://git-scm.com/about) to avoid losing progress
+
+## Deployment
+
+This project contains Github Actions configuration for deployment to Github Pages, which triggers automatically by pushing the `main` branch. You can also create a production build using `npm run build`, which outputs the production build to the `dist` folder, and publish to the web using [this guide](https://8thwall.org/docs/getting-started/publishing#self-hosting-your-project).
+
+## Questions?
+
+Please raise any questions on [Github Discussions](https://github.com/orgs/8thwall/discussions) or join the [Discord](https://8th.io/discord) to connect with the community.
+
+## Note
+
+This project relies on the [8th Wall Engine](https://www.npmjs.com/package/@8thwall/engine-binary), [XRExtras](https://www.npmjs.com/package/@8thwall/xrextras), and [Landing Page](https://www.npmjs.com/package/@8thwall/landing-page) which are loaded as script tags in `index.html`.
+
 ```
-
-### Publishing
-Run `npm run build` to generate a production build. The resulting build will be in `dist/`. You can host this bundle on any web server you want.
-
-### Project Overview
-- `src/`: Contains all your original project code and assets.
-    - References to asset bundles will need to be updated. Asset bundles are now plain folders. For example,
-      - GLTF bundles need to be updated to the `.gltf` file in the folder, i.e., if your model is at `assets/mymodel.gltf/`, update your code to reference `assets/mymodel.gltf/mymodel_file.gltf`.
-- `image-targets/`: Contains your project's image targets (if any).
-  - The image target with the `_target` suffix is the image target loaded by the engine. The others are used for various display purposes, but are exported for your convenience.
-  - To enable image targets, call this in `app.js` or `app.ts` file. (Note: `app.js` or `app.ts` may not be created by default; you will need to create this file yourself.) The autoload targets will have a `"loadAutomatically": true` property in their json file.
-```javascript
-const onxrloaded = () => {
-  XR8.XrController.configure({
-    imageTargetData: [
-      require('../image-targets/target1.json'),
-      require('../image-targets/target2.json'),
-    ],
-  })
-}
-window.XR8 ? onxrloaded() : window.addEventListener('xrloaded', onxrloaded)
+<script src="https://cdn.jsdelivr.net/npm/@8thwall/engine-binary@1/dist/xr.js" async crossorigin="anonymous" data-preload-chunks="slam"></script>
+<script src="https://cdn.jsdelivr.net/npm/@8thwall/xrextras@1/dist/xrextras.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@8thwall/landing-page@1/dist/landing-page.js" crossorigin="anonymous"></script>
 ```
-- `config/`: Contains the necessary webpack configuration and typescript definitions to support project development.
-- `external/`: Contains dependencies used by your project, loaded in `index.html`.
-  - If you are not using the XR Engine, you can remove the xr.js script tag from `index.html` and delete the `external/xr/` folder to save bandwidth.
-  - You can also customize whether `face`, `slam`, or both, are loaded on the `data-preload-chunks` attribute.
-
-### Final Notes
-Please reach out to support@8thwall.com with any questions not yet answered in the docs. Thank you for being part of 8th Wall's story!

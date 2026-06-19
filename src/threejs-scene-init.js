@@ -1,9 +1,11 @@
 // Define an 8th Wall XR Camera Pipeline Module that adds a cube to a threejs scene on startup.
-
-import {parseUrl} from './url-parser'
-import {ProcessInputs} from './process-inputs'
-import {UpdateCurve, UpdateFunctionMesh, UpdateVFld, MakeArrow} from './make-geometry'
-import {BaseComponentGui, GuiCallbacks} from './gui-init'
+import * as THREE from 'three';
+import { GUI } from 'dat.gui';
+import { Parser } from './input-processing/Parser';
+import { Processor } from './input-processing/Processor';
+import { BaseComponentGui } from './gui/BaseComponentGui';
+import { GuiCallbacks } from './gui/GuiCallbacks';
+import { VectorFieldCallback } from './callbacks/VectorFieldCallback';
 
 // allows vars to be updated by externalgui callback
 const vars = {
@@ -12,73 +14,45 @@ const vars = {
   'size': 30,
   'scale': 10,
   't': 0,
-  'axisvecs': {'x': 9, 'y': 9, 'z': 1},
+  'slices': [9, 9, 1], 
 }
 
-// these get updated with callback functions
-const functionMeshes = []
-const spaceCurveMeshes = []
-const vectorFieldMeshes = []
-
-const updateFunctionMeshes = () => {
-  functionMeshes.forEach((func) => {
-    UpdateFunctionMesh(func.ce, func.equation, vars.scale, vars.size, func.mesh)
-  })
+const containers = {
+  'vflds': []
 }
 
-const updateCurveMeshes = () => {
-  spaceCurveMeshes.forEach((sCrv) => {
-    UpdateCurve(sCrv, vars.scale)
-  })
-}
+export const initScenePipelineModule = () => {
+  const purple = 0xAD50FF
 
-const updateSpaceCurvePoints = () => {
-  spaceCurveMeshes.forEach((sCrv) => {
-    const newpoint = {'x': 0, 'y': 0, 'z': 0}
-    sCrv.ce.assign('t', vars.t)
-    for (const element of ['x', 'y', 'z']) {
-      const result = `${sCrv.eqs[element].evaluate()}`
-      if (isNaN(result) === false) {
-        newpoint[element] = Number(result)
-      }
-    }
-    sCrv.point.position.set(newpoint.x, newpoint.z, newpoint.y)
-  })
-}
-
-const updateVFldMeshes = () => {
-  vectorFieldMeshes.forEach((vFld) => {
-    UpdateVFld(vars, vFld)
-  })
-}
-
-const callbacks = {
-  'axisUpdate': [
-    updateFunctionMeshes,
-    updateCurveMeshes,
-    updateVFldMeshes,
-  ],
-  'updateSpaceCurvePoints': updateSpaceCurvePoints,
-}
-
-/* globals dat */
-
-const clippingPlaneScenePipelineModule = () => {
-  // Populates XR Scene
+  // Populates a cube into an XR scene and sets the initial camera position.
   const initXrScene = ({scene, camera, renderer}) => {
+    // Enable shadows in the rednerer.
+    renderer.shadowMap.enabled = true
+
+    const callbacks = {
+      'vflds': (() => {
+        VectorFieldCallback(vars.slices, containers.vflds)
+        renderer.render(scene, camera)
+      }),
+    }
+
+
+    // Add some light to the scene.
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
+    directionalLight.position.set(5, 10, 7)
+    directionalLight.castShadow = true
+    scene.add(directionalLight)
+
+    /* axes */
     const params = {
       showAxes: true,
       axisMax: 10,
       scale: 1.0,
       t: 0,
-      xVectors: vars.axisvecs.x,
-      yVectors: vars.axisvecs.y,
-      zVectors: vars.axisvecs.z,
+      xSlices: vars.slices[0],
+      ySlices: vars.slices[1],
+      zSlices: vars.slices[2],
     }
-
-    /* enable shadows */
-    renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
     /* could use axishelper but planes are more helpful visually */
     /* order: x, y, z */
@@ -112,88 +86,45 @@ const clippingPlaneScenePipelineModule = () => {
 
     scene.add(axes)
 
-    /* lines to make axes usable even if user doesnt like the planes */
-    const lineAxes = new THREE.Group()
-    const origin = new THREE.Vector3(0, 0, 0)
-    const lines = [
-      [new THREE.Vector3(0, 30, 0), 0x0000ff, '+z'],  // +z
-      [new THREE.Vector3(0, -30, 0), 0x0000ff, '-z'],  // -z
-      [new THREE.Vector3(0, 0, 30), 0x00ff00, '+y'],  // +y
-      [new THREE.Vector3(0, 0, -30), 0x00ff00, '-y'],  // -y
-      [new THREE.Vector3(30, 0, 0), 0xff0000, '+x'],  // +x
-      [new THREE.Vector3(-30, 0, 0), 0xff0000, '-x'],  // -x
-    ]
-    lines.forEach((line) => {
-      const axis = MakeArrow(origin, line[0], line[1], 3)
-      /* TODO: figure out labels */
-      lineAxes.add(axis)
-    })
-    scene.add(lineAxes)
-
     // GUI - allows users to toggle axis visibility
-    const gui = new dat.GUI({width: 250})
+    const gui = new GUI({width: 250})
     gui.domElement.id = 'gui'
 
-    const inputvalues = parseUrl()
-    const components = ProcessInputs(inputvalues)
+    const inputvalues = Parser()
+    const components = Processor(inputvalues)
     const componentGroup = new THREE.Group()
 
     /* makes component visibility togglable */
     const componentGui = gui.addFolder('Components')
     if (components.length > 0) {
-      /* eslint-disable-next-line no-console */
-      console.log(components)
       for (const group of components) {
         let [name, mesh] = group
-        if (name.includes('Func')) {
-          functionMeshes.push({...mesh})
-          mesh = mesh.group
-        } else if (name.includes('SCrv')) {
-          spaceCurveMeshes.push({...mesh})
-          let tempgroup = new THREE.Group()
-          tempgroup.add(mesh.mesh)
-          tempgroup.add(mesh.point)
-          mesh = tempgroup
-        } else if (name.includes('VFld')) {
-          vectorFieldMeshes.push({...mesh})
-          mesh = mesh.group
+        if (name.includes('VFld')) {
+          containers.vflds.push(mesh)
         }
-        componentGroup.add(mesh)
+        componentGroup.add(mesh.group)
         BaseComponentGui(params, componentGui, mesh, name, vars, callbacks)
       }
     }
 
-    /* eslint-disable-next-line no-console */
-    console.log(componentGroup)
     componentGroup.scale.set(vars.scenescale, vars.scenescale, vars.scenescale)
+    
     scene.add(componentGroup)
 
     /* sets up the rest of the gui */
     GuiCallbacks(params, gui, vars, axes, componentGroup, callbacks, renderer, scene, camera)
 
-    // Create a DirectionalLight and turn on shadows for the light
-    const light = new THREE.DirectionalLight(0xffffff, 1)
-    light.position.set(-1.25, 1, 1.25)  // default; light shining from top
-    light.castShadow = true
-    scene.add(light)
-
-    // Set up shadow properties for the light
-    light.shadow.mapSize.width = 512  // default
-    light.shadow.mapSize.height = 512  // default
-    light.shadow.camera.near = 0.5  // default
-    light.shadow.camera.far = 500  // default
-
     // Set the initial camera position relative to the scene we just laid out. This must be at a
     // height greater than y=0.
-    camera.position.set(0, 2.5, 3)
+    camera.position.set(0, 2, 2)
+    camera.up = new THREE.Vector3( 0, 0, 1 );
   }
 
-  // NO CHANGES NEEDED HERE
   // Return a camera pipeline module that adds scene elements on start.
   return {
     // Camera pipeline modules need a name. It can be whatever you want but must be unique within
     // your app.
-    name: 'clipping-plane-scene',
+    name: 'threejsinitscene',
 
     // onStart is called once when the camera feed begins. In this case, we need to wait for the
     // XR8.Threejs scene to be ready before we can access it to add content. It was created in
@@ -222,5 +153,3 @@ const clippingPlaneScenePipelineModule = () => {
     },
   }
 }
-
-export {clippingPlaneScenePipelineModule}
