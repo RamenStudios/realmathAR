@@ -7,6 +7,18 @@ import { BaseComponentGui } from './gui/BaseComponentGui';
 import { GuiCallbacks } from './gui/GuiCallbacks';
 import { VectorFieldCallback } from './callbacks/VectorFieldCallback';
 
+/* *******************************TODO**********************************
+  * Migrate to lil-gui, dat-gui is outdated
+  * * lil-gui also supports easier color sliders
+  * Untangle gui callbacks
+  * Make axis generation less messy
+  *  *  tbh just move back to axis helper probably
+  * Add color changer callbacks
+  * Update to current mathlive
+  * ???
+  * profit
+********************************************************************* */
+
 // allows vars to be updated by externalgui callback
 const vars = {
   'scenescale': 0.5,
