@@ -63,15 +63,22 @@ genFolder.add(params, 't', -50, 50, 0.1)
 */
 
 /* callback when vfld slices changed */
-const VectorFieldCallback = (newslices, vfld) => {
+const VectorFieldCallback = (value, index, vfld) => {
+    /* update slice range, avoid redundant rerender */
+    if (vfld.ranges[index] === value) {
+        return
+    } else {
+        vfld.ranges[index] = value
+    }
     /* clear old slices from display */
     vfld.group.children = []
     let i = 0 
     let j = 0
     let k = 0
-    for (let x = -newslices[0]; x < newslices[0]; x++) {
-        for (let y = -newslices[1]; y < newslices[1]; y++) {
-            for (let z = -newslices[2]; z < newslices[2]; z++) {
+    /* get desired slices from slice cache */
+    for (let x = -vfld.ranges[0]; x < vfld.ranges[0]; x++) {
+        for (let y = -vfld.ranges[1]; y < vfld.ranges[1]; y++) {
+            for (let z = -vfld.ranges[2]; z < vfld.ranges[2]; z++) {
                 try {
                     vfld.group.add(vfld.slices[i][j][k])
                 } catch (e) {
@@ -87,20 +94,97 @@ const VectorFieldCallback = (newslices, vfld) => {
     }
 }
 
+const GuiInit = (gui, component) => {
+    /* for components affected by range constraints */
+    const RangeSlider = () => {
+        gui.add(component, 'xMax', 5, 50, 1)
+        gui.add(component, 'yMax', 5, 50, 1)
+        gui.add(component, 'zMax', 5, 50, 1)
+    }
+    /* for components with flat colors */
+    const ColorSlider = () => {
+        gui.addColor(component.mesh.material, 'color')
+    }
+    switch (component.type) {
+        // func
+        case 0:
+            RangeSlider()
+            break
+        // pt
+        case 1:
+            break
+        // vec
+        case 2:
+            break
+        // vfld
+        case 3:
+            /**
+             *  SLICE UPDATERS
+             *  having a separate one for each vFld prevents too many concurrent rerenders 
+             **/
+            [['x', 0], ['y', 1], ['z', 2]].map((slice) => {
+                gui.add(component, `${slice[0]}Slices`, 1, 20, component.ranges[slice[1]]).onFinishChange((value)=>{VectorFieldCallback(value, slice[1], component)})
+            })
+            break
+        // scrv
+        case 4:
+            RangeSlider()
+            ColorSlider()
+            break
+    }
+}
+
 Processor(Parser()).map((component) => {
     let newFolder = gui.addFolder(component.name)
+    /* treat component types as appropriate */
+    switch (component.type) {
+        // func
+        case 0:
+            break
+        // pt
+        case 1:
+            break
+        // vec
+        case 2:
+            break
+        // vfld
+        case 3:
+            /**
+             *  SLICE UPDATERS
+             *  having a separate one for each vFld prevents too many concurrent rerenders 
+             **/
+            newFolder.add(component, 'xSlices', 1, 20, component.ranges[0]).onFinishChange((value)=>{VectorFieldCallback(value, 0, component)})
+            newFolder.add(component, 'ySlices', 1, 20, component.ranges[1]).onFinishChange((value)=>{VectorFieldCallback(value, 1, component)})
+            newFolder.add(component, 'zSlices', 1, 20, component.ranges[2]).onFinishChange((value)=>{VectorFieldCallback(value, 2, component)})
+            break
+        // scrv
+        case 4:
+            break
+    }
     // vfld uses a gradient 
     // hmm... so does function. maybe find a better way
     if (component.name.includes('VFld')) {
-        console.log('todo vfld, slices and colors')
+        /**
+         *  SLICE UPDATERS
+         *  having a separate one for each vFld prevents too many concurrent rerenders 
+         **/
+        newFolder.add(component, 'xSlices', 1, 20, component.ranges[0]).onFinishChange((value)=>{VectorFieldCallback(value, 0, component)})
+        newFolder.add(component, 'ySlices', 1, 20, component.ranges[1]).onFinishChange((value)=>{VectorFieldCallback(value, 1, component)})
+        newFolder.add(component, 'zSlices', 1, 20, component.ranges[2]).onFinishChange((value)=>{VectorFieldCallback(value, 2, component)})
+        console.log('todo vfld, colors')
     } else {
+        /* vectors are fixed magnitude, no range slider */
+        if (component.name.includes('Vec')) {
+            console.log('todo vec, line and cone colors')
+        } else {
+            /* everything else gets a size slider */
+        }
         newFolder.add(component, 'xMax', 5, 50, 1)
         newFolder.add(component, 'yMax', 5, 50, 1)
         newFolder.add(component, 'zMax', 5, 50, 1)
         if (component.name.includes('Func')) {
             console.log('todo func, gradient colors')
         } else if (component.name.includes('Vec')) {
-            console.log('todo vec, line and cone colors')
         } else {
             newFolder.addColor(component.mesh.material, 'color')
         }

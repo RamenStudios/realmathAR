@@ -12,7 +12,7 @@ export const VectorField = (props) => {
     const step = scale / MAXSIZE
     const vecsize = MAXSIZE * 2
     const vecs = new Group()
-    /* we store all vecs to avoid having to reevaluate */
+    /* cache all vecs to avoid having to reevaluate, as loops are expensive */
     const slices = Array(vecsize).fill().map(()=>{return Array(vecsize).fill().map(()=>Array(vecsize).fill())})
     // generate the list of vectors
     let i = 0
