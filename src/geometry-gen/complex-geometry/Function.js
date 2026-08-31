@@ -44,8 +44,47 @@ const FunctionPointGetter = (props) => {
     return [positionAttribute, trianglePoints]
 }
 
+
+/**
+ * adapt this sketch to gradient nicerer
+ * use .toNonIndexed() to make sharper
+// function to make a mesh with random colors of vertices
+
+function randomColorMesh( geometry )
+{
+		var faces   = geometry.getAttribute('position').count / 3,
+				colors  = [],
+				object  = new THREE.Mesh(
+											geometry,
+											new THREE.MeshLambertMaterial( {vertexColors: true} )
+									);
+		var switcher = false
+		var currColor = []
+		for( var i=0; i<faces; i++ )
+		{
+			if (switcher === false) {
+				currColor = [Math.random( ),Math.random( ),Math.random( )]
+			}
+			for (var j=0; j<3; j++) {
+				colors.push(currColor[0], currColor[1],  currColor[2]);
+			}
+			switcher = !switcher
+		}
+
+		geometry.setAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ));
+
+		return object;
+}
+ */
+/**
+ * 
+ * @param {*} geometry 
+ * @param {*} colors 
+ * @returns 
+ */
+
 /* helper for function mesh material, so I don't rewrite the snippet */
-const MakeFunctionMaterial = (geometry, color) => {
+const MakeFunctionMaterial = (geometry, colors) => {
     geometry.computeBoundingBox()
     const material = new ShaderMaterial({
         uniforms: {
