@@ -3,6 +3,7 @@ import { Vector } from "../base-geometry/Vector"
 import { evaluate, N, assign } from "@cortex-js/compute-engine";
 
 const MAXSIZE = 20
+const MAXSLICE = 10
 
 /* makes vector field */
 export const VectorField = (props) => {

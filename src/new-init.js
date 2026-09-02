@@ -36,9 +36,6 @@ function animate() {
 animate()
 */
 
-/* vFlds container for callbacks */
-const vFlds = []
-
 /* initializing range constraints + steps */
 const GlobalRanges =    {
                             axis: [75, 1],
@@ -52,14 +49,14 @@ const grid = new THREE.GridHelper(10, 10, 0x9bdc6e, 0x333333)
 /* global params affect more than 1 object */
 const params = {
     scale: 1.0,
-    axisRangeMax: 75,
+    
 }
 
 const gui = new GUI()
 
-const genFolder = gui.addFolder('General')
-genFolder.add(axes, 'visible')
-genFolder.add(grid, 'visible')
+const genFolder = gui.addFolder('Global Variables')
+genFolder.add(axes, 'visible').name('axes visible?')
+genFolder.add(grid, 'visible').name('grid visible?')
 genFolder.add(params, 'scale', 0, 1, 0.1)
 
 /* 
@@ -104,16 +101,21 @@ const GuiInit = (gui, component) => {
     /* for components affected by range constraints */
     const RangeSlider = (callback = null) => {
         [['x', 0], ['y', 1], ['z', 2]].map((axis) => {
-            gui.add(component, `${axis[0]}Max`, 5, GlobalRanges.axis[0], GlobalRanges.axis[1]).onFinishChange((value) => {
+            let tempgui = gui.add(component, `${axis[0]}Max`, 5, GlobalRanges.axis[0], GlobalRanges.axis[1])
+            tempgui.onFinishChange((value) => {
                 if (callback !== null) {
                     callback(value, axis[1], component)
                 }
             })
+            tempgui.name(`${axis[0]} range (+-)`)
         })
     }
     /* for components with flat colors */
-    const ColorSlider = () => {
-        gui.addColor(component.mesh.material, 'color')
+    const ColorSlider = (obj=component, name=null) => {
+        let tempgui = gui.addColor(obj.mesh.material, 'color')
+        if (name !== null) {
+            tempgui.name(name)
+        }
     }
     /* gui composition by component type */
     switch (component.type) {
@@ -136,15 +138,19 @@ const GuiInit = (gui, component) => {
              *  having a separate one for each vFld prevents too many concurrent rerenders 
              *  map so as to not rewrite 3 lines or store arbitrary array
              **/
+            sliceFolder = gui.addFolder('Vectors Along []-Axis')
             [['x', 0], ['y', 1], ['z', 2]].map((slice) => {
-                gui.add(component, `${slice[0]}Slices`, 1, 20, component.ranges[slice[1]]).onFinishChange((value)=>{VectorFieldCallback(value, slice[1], component)})
+                let tempgui = sliceFolder.add(component, `${slice[0]}Slices`, 1, 10, component.ranges[slice[1]])
+                tempgui.onFinishChange((value)=>{VectorFieldCallback(value, slice[1], component)})
+                tempgui.name(`${slice[0]}-axis`)
             })
             break
         // scrv
         case 4:
             RangeSlider()
-            ColorSlider()
             gui.add(component, 't', -GlobalRanges.t[0], GlobalRanges.t[0], GlobalRanges.t[1])
+            ColorSlider(component.mesh, 'curve color')
+            ColorSlider(component.point, 'point color')
             break
     }
 }
