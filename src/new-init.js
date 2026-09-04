@@ -59,11 +59,6 @@ genFolder.add(axes, 'visible').name('axes visible?')
 genFolder.add(grid, 'visible').name('grid visible?')
 genFolder.add(params, 'scale', 0, 1, 0.1)
 
-/* 
-    for component colors, do
-    gui.addColor(component.material, 'color')
-*/
-
 /* callback when vfld slices changed */
 const VectorFieldCallback = (value, index, vfld) => {
     /* update slice range, avoid redundant rerender */
@@ -155,7 +150,17 @@ const GuiInit = (gui, component) => {
     }
 }
 
+/* extract components from URL, init their GUIs, prepare for scene addition */
+const Components = new THREE.Group()
 Processor(Parser()).map((component) => {
     let newFolder = gui.addFolder(component.name)
     GuiInit(newFolder, component)
+    /* some in groups, some singular meshes */
+    if ('group' in component) {
+        Components.add(component.group)
+    } else {
+        Components.add(component.mesh)
+    }
 })
+
+scene.add(Components)
