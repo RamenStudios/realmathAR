@@ -1,11 +1,8 @@
-// Define an 8th Wall XR Camera Pipeline Module that adds a cube to a threejs scene on startup.
-import * as THREE from 'three';
-import { GUI } from 'dat.gui';
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import GUI from 'lil-gui'
 import { Parser } from './input-processing/Parser';
 import { Processor } from './input-processing/Processor';
-import { BaseComponentGui } from './gui/BaseComponentGui';
-import { GuiCallbacks } from './gui/GuiCallbacks';
-import { VectorFieldCallback } from './callbacks/VectorFieldCallback';
 
 /* *******************************TODO**********************************
   * Migrate to lil-gui, dat-gui is outdated
@@ -33,6 +30,12 @@ const containers = {
   'vflds': []
 }
 
+/* initializing range constraints + steps */
+const GlobalRanges =    {
+                            axis: [75, 1],
+                            t: [100, 0.1]
+                        }
+
 export const initScenePipelineModule = () => {
   const purple = 0xAD50FF
 
@@ -41,90 +44,140 @@ export const initScenePipelineModule = () => {
     // Enable shadows in the rednerer.
     renderer.shadowMap.enabled = true
 
-    const callbacks = {
-      'vflds': (() => {
-        VectorFieldCallback(vars.slices, containers.vflds)
-        renderer.render(scene, camera)
-      }),
-    }
-
-
     // Add some light to the scene.
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
     directionalLight.position.set(5, 10, 7)
     directionalLight.castShadow = true
     scene.add(directionalLight)
 
-    /* axes */
+    /* axes and grid */
+    const axes = new THREE.AxesHelper(10)
+    const grid = new THREE.GridHelper(10, 10, 0x9bdc6e, 0x333333)
+
+    /* global params affect more than 1 object */
     const params = {
-      showAxes: true,
-      axisMax: 10,
-      scale: 1.0,
-      t: 0,
-      xSlices: vars.slices[0],
-      ySlices: vars.slices[1],
-      zSlices: vars.slices[2],
+        scale: 1.0,
     }
 
-    /* could use axishelper but planes are more helpful visually */
-    /* order: x, y, z */
-    const axisPlanes = [
-      [new THREE.PlaneGeometry(10, 10), 0xff0000],
-      [new THREE.PlaneGeometry(10, 10), 0x0000ff],
-      [new THREE.PlaneGeometry(10, 10), 0x00ff00],
-    ]
-    /* necessary rotations for x and z */
-    axisPlanes[0][0].rotateX(Math.PI / 2)
-    axisPlanes[2][0].rotateY(Math.PI / 2)
+    const gui = new GUI()
 
-    /* make group of planes, set all to receive shadow */
-    const axes = new THREE.Group()
-    for (const plane of axisPlanes) {
-      const axis = new THREE.Mesh(plane[0], new THREE.MeshBasicMaterial({
-        color: plane[1],
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.4,
-      }))
-      axes.add(axis)
-    }
-
-    /* TODO: add outlines to axes to increase visibility */
-
-    axes.scale.set(vars.scenescale, vars.scenescale, vars.scenescale)
-    axes.receiveShadow = true
-    axes.castShadow = false
-    axes.visible = true
+    const genFolder = gui.addFolder('Global Variables')
+    genFolder.add(axes, 'visible').name('axes visible?')
+    genFolder.add(grid, 'visible').name('grid visible?')
+    genFolder.add(params, 'scale', 0, 1, 0.1)
 
     scene.add(axes)
+    scene.add(grid)
 
-    // GUI - allows users to toggle axis visibility
-    const gui = new GUI({width: 250})
-    gui.domElement.id = 'gui'
-
-    const inputvalues = Parser()
-    const components = Processor(inputvalues)
-    const componentGroup = new THREE.Group()
-
-    /* makes component visibility togglable */
-    const componentGui = gui.addFolder('Components')
-    if (components.length > 0) {
-      for (const group of components) {
-        let [name, mesh] = group
-        if (name.includes('VFld')) {
-          containers.vflds.push(mesh)
+    /* callback when vfld slices changed */
+    const VectorFieldCallback = (value, index, vfld) => {
+        /* update slice range, avoid redundant rerender */
+        if (vfld.ranges[index] === value) {
+            return
+        } else {
+            vfld.ranges[index] = value
         }
-        componentGroup.add(mesh.group)
-        BaseComponentGui(params, componentGui, mesh, name, vars, callbacks)
-      }
+        /* clear old slices from display */
+        vfld.group.children = []
+        let i = 0 
+        let j = 0
+        let k = 0
+        /* get desired slices from slice cache */
+        for (let x = -vfld.ranges[0]; x < vfld.ranges[0]; x++) {
+            for (let y = -vfld.ranges[1]; y < vfld.ranges[1]; y++) {
+                for (let z = -vfld.ranges[2]; z < vfld.ranges[2]; z++) {
+                    try {
+                        vfld.group.add(vfld.slices[i][j][k])
+                    } catch (e) {
+                        console.error(`${e}`)
+                    }
+                    k+=1
+                }
+                k = 0
+                j+=1
+            }
+            j = 0
+            i+=1
+        }
     }
 
-    componentGroup.scale.set(vars.scenescale, vars.scenescale, vars.scenescale)
-    
-    scene.add(componentGroup)
+    /* initialize the gui for each component */
+    const GuiInit = (gui, component) => {
+        /* for components affected by range constraints */
+        const RangeSlider = (callback = null) => {
+            ([['x', 0], ['y', 1], ['z', 2]]).map((axis) => {
+                gui
+                .add(component, `${axis[0]}Max`, 5, GlobalRanges.axis[0], GlobalRanges.axis[1])
+                .name(`${axis[0]} range (+-)`)
+                .onFinishChange((value) => {
+                    if (callback !== null) {
+                        callback(value, axis[1], component)
+                    }
+                })
+            })
+        }
+        /* for components with flat colors */
+        const ColorSlider = (obj, name=null) => {
+            if (name !== null) {  
+              gui.addColor(obj.material, 'color').name(name)
+            } else {
+              gui.addColor(obj.material, 'color')
+            }
+        }
+        /* gui composition by component type */
+        switch (component.type) {
+            // func
+            case 0:
+                RangeSlider()
+                break
+            // pt
+            case 1:
+                ColorSlider(obj.group)
+                break
+            // vec
+            case 2:
+                gui.addColor(component.group.children[0].material, 'color').onChange((value) => {component.group.children[1].material.color = value.clone()})
+                break
+            // vfld
+            case 3:
+                /**
+                 *  SLICE UPDATERS
+                 *  having a separate one for each vFld prevents too many concurrent rerenders 
+                 *  map so as to not rewrite 3 lines or store arbitrary array
+                 **/
+                sliceFolder = gui.addFolder('Vectors Along []-Axis')
+                ([['x', 0], ['y', 1], ['z', 2]]).map((slice) => {
+                    sliceFolder
+                      .add(component, `${slice[0]}Slices`, 1, 10, component.ranges[slice[1]])
+                      .onFinishChange((value)=>{VectorFieldCallback(value, slice[1], component)})
+                      .name(`${slice[0]}-axis`)
+                })
+                break
+            // scrv
+            case 4:
+                RangeSlider()
+                console.log(component)
+                gui.add(component, 't', -GlobalRanges.t[0], GlobalRanges.t[0], GlobalRanges.t[1])
+                ColorSlider(component.mesh, 'curve color')
+                ColorSlider(component.point, 'point color')
+                break
+        }
+    }
 
-    /* sets up the rest of the gui */
-    GuiCallbacks(params, gui, vars, axes, componentGroup, callbacks, renderer, scene, camera)
+    /* extract components from URL, init their GUIs, prepare for scene addition */
+    const Components = new THREE.Group()
+    Processor(Parser()).map((component) => {
+      console.log(component)
+      let [name, obj] = component
+      console.log(obj)
+      let newFolder = gui.addFolder(name)
+      GuiInit(newFolder, obj)
+      Components.add(obj.group)
+    })
+
+    console.log('components complete')
+
+    scene.add(Components)
 
     // Set the initial camera position relative to the scene we just laid out. This must be at a
     // height greater than y=0.

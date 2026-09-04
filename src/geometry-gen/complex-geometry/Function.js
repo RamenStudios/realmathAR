@@ -150,6 +150,10 @@ export const FunctionMesh = (props) => {
         'group': funcgroup,
         'mesh': mesh,
         'equation': props.equation,
+        xMax: scale,
+        yMax: scale,
+        zMax: scale,
+        type: 0
     }
 }
 /// /////////////////////////////////////////

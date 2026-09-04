@@ -29,7 +29,10 @@ const set_dir = (group, vec) => {
         const radians = Math.acos(dir.y )
         group.quaternion.setFromAxisAngle( axis, radians )
     }
-    return {group: group}
+    return  {
+                group: group,
+                type: 2
+            }
 }
 
 /**

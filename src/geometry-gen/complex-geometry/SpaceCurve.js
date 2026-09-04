@@ -61,5 +61,10 @@ export const SpaceCurve = (props) => {
         'mesh': new Line2(linegeo, material),
         'group': returngroup,
         'eqs': eqs,
+        t: 0,
+        xMax: scale,
+        yMax: scale,
+        zMax: scale,
+        type: 4
     }
 }

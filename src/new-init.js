@@ -49,7 +49,6 @@ const grid = new THREE.GridHelper(10, 10, 0x9bdc6e, 0x333333)
 /* global params affect more than 1 object */
 const params = {
     scale: 1.0,
-    
 }
 
 const gui = new GUI()
@@ -58,6 +57,9 @@ const genFolder = gui.addFolder('Global Variables')
 genFolder.add(axes, 'visible').name('axes visible?')
 genFolder.add(grid, 'visible').name('grid visible?')
 genFolder.add(params, 'scale', 0, 1, 0.1)
+
+scene.add(axes)
+scene.add(grid)
 
 /* callback when vfld slices changed */
 const VectorFieldCallback = (value, index, vfld) => {

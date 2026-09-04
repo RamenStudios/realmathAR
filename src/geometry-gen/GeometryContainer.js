@@ -20,7 +20,7 @@ export const GeometryContainer = (type, props) => {
             geometry = FunctionMesh(props)
             break
         case 1:
-            geometry = Point(props)
+            geometry = {group: Point(props), type: 1}
             break
         case 2:
             geometry = Vector(props)
