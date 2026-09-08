@@ -72,10 +72,10 @@ export const initScenePipelineModule = () => {
     /* callback when vfld slices changed */
     const VectorFieldCallback = (value, index, vfld) => {
         /* update slice range, avoid redundant rerender */
-        if (vfld.ranges[index] === value) {
+        if (vfld[`${index}Slices`] === value) {
             return
         } else {
-            vfld.ranges[index] = value
+            vfld[`${index}Slices`] = value
         }
         /* clear old slices from display */
         vfld.group.children = []
@@ -83,9 +83,9 @@ export const initScenePipelineModule = () => {
         let j = 0
         let k = 0
         /* get desired slices from slice cache */
-        for (let x = -vfld.ranges[0]; x < vfld.ranges[0]; x++) {
-            for (let y = -vfld.ranges[1]; y < vfld.ranges[1]; y++) {
-                for (let z = -vfld.ranges[2]; z < vfld.ranges[2]; z++) {
+        for (let x = -vfld.xSlices; x < vfld.xSlices; x++) {
+            for (let y = -vfld.ySlices; y < vfld.ySlices; y++) {
+                for (let z = -vfld.zSlices; z < vfld.zSlices; z++) {
                     try {
                         vfld.group.add(vfld.slices[i][j][k])
                     } catch (e) {
@@ -111,7 +111,7 @@ export const initScenePipelineModule = () => {
                 .name(`${axis[0]} range (+-)`)
                 .onFinishChange((value) => {
                     if (callback !== null) {
-                        callback(value, axis[1], component)
+                        callback(value, axis[0], component)
                     }
                 })
             })
@@ -145,11 +145,12 @@ export const initScenePipelineModule = () => {
                  *  having a separate one for each vFld prevents too many concurrent rerenders 
                  *  map so as to not rewrite 3 lines or store arbitrary array
                  **/
-                sliceFolder = gui.addFolder('Vectors Along []-Axis')
+                const sliceFolder = gui.addFolder('Vectors Along []-Axis')
+                console.log(gui);
                 ([['x', 0], ['y', 1], ['z', 2]]).map((slice) => {
                     sliceFolder
-                      .add(component, `${slice[0]}Slices`, 1, 10, component.ranges[slice[1]])
-                      .onFinishChange((value)=>{VectorFieldCallback(value, slice[1], component)})
+                      .add(component, `${slice[0]}Slices`, 1, 10, 1)
+                      .onFinishChange((value)=>{VectorFieldCallback(value, slice[0], component)})
                       .name(`${slice[0]}-axis`)
                 })
                 break
@@ -183,6 +184,8 @@ export const initScenePipelineModule = () => {
     // height greater than y=0.
     camera.position.set(0, 2, 2)
     camera.up = new THREE.Vector3( 0, 0, 1 );
+
+    console.log(Components)
   }
 
   // Return a camera pipeline module that adds scene elements on start.

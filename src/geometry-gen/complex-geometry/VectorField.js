@@ -87,7 +87,9 @@ export const VectorField = (props) => {
 
     return {
         group: vecs,
-        ranges: [...sliceranges],
+        xSlices: sliceranges[0],
+        ySlices: sliceranges[1],
+        zSlices: sliceranges[2],
         slices: slices,
         xMax: scale,
         yMax: scale,
