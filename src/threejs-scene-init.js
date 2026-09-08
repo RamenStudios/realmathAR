@@ -186,7 +186,7 @@ export const initScenePipelineModule = () => {
     camera.up = new THREE.Vector3( 0, 0, 1 );
 
     console.log(Components)
-  }
+  };
 
   // Return a camera pipeline module that adds scene elements on start.
   return {
@@ -198,6 +198,7 @@ export const initScenePipelineModule = () => {
     // XR8.Threejs scene to be ready before we can access it to add content. It was created in
     // XR8.Threejs.pipelineModule()'s onStart method.
     onStart: ({canvas}) => {
+      console.log('in onStart')
       const {scene, camera, renderer} = XR8.Threejs.xrScene()  // Get the 3js scene from XR8.Threejs
 
       initXrScene({scene, camera, renderer})  // Add objects set the starting camera position.
