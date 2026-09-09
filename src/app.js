@@ -33,4 +33,4 @@ const onxrloaded = () => {
   XR8.run({canvas})
 }
 
-XR8Promise.then((XR8) => XR8.XrController.configure({}))
+window.XR8 ? onxrloaded() : window.addEventListener('xrloaded', onxrloaded)

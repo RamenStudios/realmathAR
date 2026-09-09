@@ -14,14 +14,4 @@ export default defineConfig({
   server: {
     allowedHosts: ['.ngrok-free.dev'],
   },
-  plugins: [
-    viteStaticCopy({
-      targets: [
-        {
-          src: 'node_modules/@8thwall/engine-binary/dist',
-          dest: 'xr'
-        }
-      ]
-    })
-  ],
 });

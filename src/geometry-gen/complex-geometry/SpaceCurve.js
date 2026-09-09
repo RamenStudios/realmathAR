@@ -19,10 +19,10 @@ export const SpaceCurve = (props) => {
         for (const element of ['x', 'y', 'z']) {
             const result = `${eqs[element].evaluate()}`
             if (isNaN(result) === false) {
-            values[element] = Number(result)
+                values[element] = Number(result)
             } else {
-            add = false
-            break
+                add = false
+                break
             }
         }
         if (add) {
@@ -40,6 +40,7 @@ export const SpaceCurve = (props) => {
             zeropoint[element] = 0
         }
     }
+    console.log(zeropoint)
 
     // placeholder mats
     const linemat = new LineBasicMaterial({
@@ -51,16 +52,36 @@ export const SpaceCurve = (props) => {
         worldUnits: true,
     })
 
+    // callback when t changes
+    const tCallback = (newT, point) => {
+        let newPoint = {...zeropoint}
+        assign('t', Number(newT))
+        for (const element of ['x', 'y', 'z']) {
+            const result = `${eqs[element].evaluate()}`
+            if (isNaN(result) === false) {
+                newPoint[element] = Number(result)
+            } else {
+                newPoint[element] = 0
+            }
+        }
+        console.log(newPoint)
+        console.log(point)
+        point.position.set(newPoint.x, newPoint.z, newPoint.y)
+    }
+
     const geometry = new BufferGeometry().setFromPoints(points)
     const linegeo = new LineGeometry().fromLine(new Line(geometry, linemat))
     const returngroup = new Group()
-    returngroup.add(Point({pos: new Vector3(zeropoint.x, zeropoint.y, zeropoint.z), color: color2}))
-    returngroup.add(new Line2(linegeo, material))
+    const point = Point({pos: new Vector3(zeropoint.x, zeropoint.y, zeropoint.z), color: color2})
+    const line = new Line2(linegeo, material)
+    returngroup.add(point)
+    returngroup.add(line)
     return {
-        'point': Point({pos: new Vector3(zeropoint.x, zeropoint.y, zeropoint.z), color: color2}),
-        'mesh': new Line2(linegeo, material),
+        'point': point,
+        'mesh': line,
         'group': returngroup,
         'eqs': eqs,
+        callback: tCallback,
         t: 0,
         xMax: scale,
         yMax: scale,

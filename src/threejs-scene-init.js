@@ -41,6 +41,8 @@ export const initScenePipelineModule = () => {
 
   // Populates a cube into an XR scene and sets the initial camera position.
   const initXrScene = ({scene, camera, renderer}) => {
+    const animate = () => {renderer.render()}
+
     // Enable shadows in the rednerer.
     renderer.shadowMap.enabled = true
 
@@ -54,6 +56,9 @@ export const initScenePipelineModule = () => {
     const axes = new THREE.AxesHelper(10)
     const grid = new THREE.GridHelper(10, 10, 0x9bdc6e, 0x333333)
 
+    /* group that will hold components */
+    const Components = new THREE.Group()
+
     /* global params affect more than 1 object */
     const params = {
         scale: 1.0,
@@ -64,19 +69,17 @@ export const initScenePipelineModule = () => {
     const genFolder = gui.addFolder('Global Variables')
     genFolder.add(axes, 'visible').name('axes visible?')
     genFolder.add(grid, 'visible').name('grid visible?')
-    genFolder.add(params, 'scale', 0, 1, 0.1)
+    genFolder.add(params, 'scale', 0, 1, 0.1).onChange((value) => {
+      axes.scale.set(value, value, value)
+      grid.scale.set(value, value, value)
+      Components.scale.set(value, value, value)
+    })
 
     scene.add(axes)
     scene.add(grid)
 
     /* callback when vfld slices changed */
     const VectorFieldCallback = (value, index, vfld) => {
-        /* update slice range, avoid redundant rerender */
-        if (vfld[`${index}Slices`] === value) {
-            return
-        } else {
-            vfld[`${index}Slices`] = value
-        }
         /* clear old slices from display */
         vfld.group.children = []
         let i = 0 
@@ -99,9 +102,12 @@ export const initScenePipelineModule = () => {
             j = 0
             i+=1
         }
+        animate()
     }
 
-    /* initialize the gui for each component */
+    /* ****************************************************************************************
+      GUI INITIALIZATION FOR EACH COMPONENT
+    **************************************************************************************** */
     const GuiInit = (gui, component) => {
         /* for components affected by range constraints */
         const RangeSlider = (callback = null) => {
@@ -124,6 +130,8 @@ export const initScenePipelineModule = () => {
               gui.addColor(obj.material, 'color')
             }
         }
+        /* all will have visibility toggle */
+        gui.add(component.group, 'visible')
         /* gui composition by component type */
         switch (component.type) {
             // func
@@ -145,28 +153,28 @@ export const initScenePipelineModule = () => {
                  *  having a separate one for each vFld prevents too many concurrent rerenders 
                  *  map so as to not rewrite 3 lines or store arbitrary array
                  **/
-                const sliceFolder = gui.addFolder('Vectors Along []-Axis')
-                console.log(gui);
+                const sliceFolder = gui.addFolder('Vectors Along []-Axis');
                 ([['x', 0], ['y', 1], ['z', 2]]).map((slice) => {
                     sliceFolder
                       .add(component, `${slice[0]}Slices`, 1, 10, 1)
                       .onFinishChange((value)=>{VectorFieldCallback(value, slice[0], component)})
-                      .name(`${slice[0]}-axis`)
+                      .name(`${slice[0]}-axis`);
                 })
                 break
             // scrv
             case 4:
-                RangeSlider()
-                console.log(component)
-                gui.add(component, 't', -GlobalRanges.t[0], GlobalRanges.t[0], GlobalRanges.t[1])
-                ColorSlider(component.mesh, 'curve color')
-                ColorSlider(component.point, 'point color')
+                RangeSlider();
+                gui
+                .add(component, 't', -GlobalRanges.t[0], GlobalRanges.t[0], GlobalRanges.t[1])
+                .onChange((value) => {component.callback(value, component.point)});
+                ColorSlider(component.mesh, 'curve color');
+                ColorSlider(component.point, 'point color');
                 break
         }
     }
+    /* *************************************************************************************** */
 
     /* extract components from URL, init their GUIs, prepare for scene addition */
-    const Components = new THREE.Group()
     Processor(Parser()).map((component) => {
       console.log(component)
       let [name, obj] = component
@@ -182,7 +190,7 @@ export const initScenePipelineModule = () => {
 
     // Set the initial camera position relative to the scene we just laid out. This must be at a
     // height greater than y=0.
-    camera.position.set(0, 2, 2)
+    camera.position.set(0, 2, 1)
     camera.up = new THREE.Vector3( 0, 0, 1 );
 
     console.log(Components)
@@ -200,6 +208,7 @@ export const initScenePipelineModule = () => {
     onStart: ({canvas}) => {
       console.log('in onStart')
       const {scene, camera, renderer} = XR8.Threejs.xrScene()  // Get the 3js scene from XR8.Threejs
+      console.log(camera)
 
       initXrScene({scene, camera, renderer})  // Add objects set the starting camera position.
 
