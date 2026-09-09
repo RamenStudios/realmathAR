@@ -16,20 +16,6 @@ import { Processor } from './input-processing/Processor';
   * profit
 ********************************************************************* */
 
-// allows vars to be updated by externalgui callback
-const vars = {
-  'scenescale': 0.5,
-  'axisscale': 1,
-  'size': 30,
-  'scale': 10,
-  't': 0,
-  'slices': [9, 9, 1], 
-}
-
-const containers = {
-  'vflds': []
-}
-
 /* initializing range constraints + steps */
 const GlobalRanges =    {
                             axis: [75, 1],
