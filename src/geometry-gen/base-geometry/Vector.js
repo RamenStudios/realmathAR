@@ -30,7 +30,7 @@ const set_dir = (group, vec) => {
         group.quaternion.setFromAxisAngle( axis, radians )
     }
     return  {
-                group: group,
+                out: group,
                 type: 2
             }
 }
@@ -67,7 +67,6 @@ export const Vector = (props) => {
     /* creating the cone (arrow point) */
     const cone = new Mesh(new ConeGeometry(head, rad, 6, 1), new MeshToonMaterial({
         color: color,
-        worldUnits: true,
         side: DoubleSide,
     }))
     cone.matrixAutoUpdate = false

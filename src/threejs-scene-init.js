@@ -22,12 +22,19 @@ const GlobalRanges =    {
                             t: [100, 0.1]
                         }
 
+async function CallbackCaller (callback, animate) {
+  const prommy = await callback()
+  animate()
+}
+
 export const initScenePipelineModule = () => {
   const purple = 0xAD50FF
 
   // Populates a cube into an XR scene and sets the initial camera position.
   const initXrScene = ({scene, camera, renderer}) => {
-    const animate = () => {renderer.render()}
+    const animate = () => {
+      renderer.render();
+    }
 
     // Enable shadows in the rednerer.
     renderer.shadowMap.enabled = true
@@ -97,15 +104,13 @@ export const initScenePipelineModule = () => {
     const GuiInit = (gui, component) => {
         /* for components affected by range constraints */
         const RangeSlider = (callback = null) => {
-            ([['x', 0], ['y', 1], ['z', 2]]).map((axis) => {
-                gui
-                .add(component, `${axis[0]}Max`, 5, GlobalRanges.axis[0], GlobalRanges.axis[1])
-                .name(`${axis[0]} range (+-)`)
-                .onFinishChange((value) => {
-                    if (callback !== null) {
-                        callback(value, axis[0], component)
-                    }
-                })
+            gui
+            .add(component, 'scale', 5, GlobalRanges.axis[0], GlobalRanges.axis[1])
+            .name(`axis +-range (x,y,z)`)
+            .onFinishChange(() => {
+                if (callback !== null) {
+                    CallbackCaller(callback, animate)
+                }
             })
         }
         /* for components with flat colors */
@@ -117,20 +122,24 @@ export const initScenePipelineModule = () => {
             }
         }
         /* all will have visibility toggle */
-        gui.add(component.group, 'visible')
+        gui.add(component.out, 'visible')
         /* gui composition by component type */
         switch (component.type) {
             // func
             case 0:
-                RangeSlider()
+                RangeSlider(component.functionCallback)
                 break
             // pt
             case 1:
-                ColorSlider(obj.group)
-                break
+                ColorSlider(component.out)
+                break;
             // vec
             case 2:
-                gui.addColor(component.group.children[0].material, 'color').onChange((value) => {component.group.children[1].material.color = value.clone()})
+                gui
+                .addColor(component.out.children[0].material, 'color')
+                .onChange((value) => {
+                  component.out.children[1].material.color = value.clone();
+                });
                 break
             // vfld
             case 3:
@@ -140,20 +149,23 @@ export const initScenePipelineModule = () => {
                  *  map so as to not rewrite 3 lines or store arbitrary array
                  **/
                 const sliceFolder = gui.addFolder('Vectors Along []-Axis');
-                ([['x', 0], ['y', 1], ['z', 2]]).map((slice) => {
+                (['x', 'y', 'z']).map((coord) => {
                     sliceFolder
-                      .add(component, `${slice[0]}Slices`, 1, 10, 1)
-                      .onFinishChange((value)=>{VectorFieldCallback(value, slice[0], component)})
-                      .name(`${slice[0]}-axis`);
+                      .add(component.slices, coord, 1, GlobalRanges.axis[0], GlobalRanges.axis[1])
+                      .name(`${coord}-axis`)
+                      .onFinishChange(()=>{
+                        component.vecsCallback(coord);
+                        animate();
+                      });
                 })
                 break
             // scrv
             case 4:
-                RangeSlider();
+                RangeSlider(component.curveCallback);
                 gui
                 .add(component, 't', -GlobalRanges.t[0], GlobalRanges.t[0], GlobalRanges.t[1])
-                .onChange((value) => {component.callback(value, component.point)});
-                ColorSlider(component.mesh, 'curve color');
+                .onChange(() => {component.tCallback()});
+                ColorSlider(component.line, 'curve color');
                 ColorSlider(component.point, 'point color');
                 break
         }
@@ -167,7 +179,7 @@ export const initScenePipelineModule = () => {
       console.log(obj)
       let newFolder = gui.addFolder(name)
       GuiInit(newFolder, obj)
-      Components.add(obj.group)
+      Components.add(obj.out)
     })
 
     console.log('components complete')

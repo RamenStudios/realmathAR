@@ -3,21 +3,23 @@ import { Group, Vector3, Color } from "three"
 import { Vector } from "../base-geometry/Vector"
 import { evaluate, N, assign } from "@cortex-js/compute-engine";
 
-class VectorField extends GeometryParent {
+export class VectorField extends GeometryParent {
     static STEP = 0.2
     constructor (props) {
         /* initialize super and vars */
         super(3, props.eqs)
         this.slices = {x: 5, y:5, z:1}
-        this.prevSlices = {...slices}
-        this.vecSize = (this.MAXSIZE * 2) / this.STEP
+        this.prevSlices = {...this.slices}
+        this.vecSize = (this.constructor.MAXSIZE * 2) / this.constructor.STEP
+        console.log(this.vecSize)
         /* generate all vectors, caching to avoid reeval */
         this.vecs = Array(this.vecSize).fill().map(()=>{return Array(this.vecSize).fill().map(()=>Array(this.vecsize).fill())})
-        const xyz = {x: -this.MAXSIZE, y: -this.MAXSIZE, z: -this.MAXSIZE}
-        for (let i = -this.vecSize; i < this.vecSize; i += 1) {
-            for (let j = -this.vecSize; j < this.vecSize; j += 1) {
-                xyz.z = -this.MAXSIZE
-                for (let k = -this.vecSize; k < this.vecSize; k += 1) {
+        const xyz = {x: -this.constructor.MAXSIZE, y: -this.constructor.MAXSIZE, z: -this.constructor.MAXSIZE}
+        for (let i = 0; i < this.vecSize; i += 1) {
+            xyz.y = -this.constructor.MAXSIZE
+            for (let j = 0; j < this.vecSize; j += 1) {
+                xyz.z = -this.constructor.MAXSIZE
+                for (let k = 0; k < this.vecSize; k += 1) {
                     assign('x', xyz.x)
                     assign('y', xyz.y)
                     assign('z', xyz.z)
@@ -39,27 +41,27 @@ class VectorField extends GeometryParent {
                     const colorvec = new Vector3().copy(dir).normalize()
 
                     if (add) {
-                        let mesh = Vector({
+                        const mesh = Vector({
                             init: dir,
                             vec: colorvec, 
                             color: new Color().setRGB(colorvec.x, colorvec.z, colorvec.y),
                             vfld: true,
-                        })
+                        }).out
                         try {
-                            this.vecs[i][j][k] = mesh.group
+                            this.vecs[i][j][k] = mesh
                         } catch (e) {
-                            throw new Error(`${e}`)
+                            throw new Error(`error @ VectorFieldClass l:51 ${e}`)
                         }
                     }
-                    xyz.z += STEP
+                    xyz.z += this.constructor.STEP
                 }
-                xyz.y += STEP           
+                xyz.y += this.constructor.STEP           
             }
-            xyz.x += STEP
+            xyz.x += this.constructor.STEP
         }
     }
 
-    getVecs (this) {
+    getVecs () {
         /* clear old slices from display */
         /* no garbage collection, since we want them cached */
         this.out.children = []
@@ -85,12 +87,15 @@ class VectorField extends GeometryParent {
         }
     }
 
-    vecsCallback (this, coord) {
+    vecsCallback = (coord) => {
         /* prevent redundant changes */
         if (this.prevSlices[coord] == this.slices[coord]) {
             return
         } else {
+            this.prevSlices[coord] = this.slices[coord]
             this.getVecs()
         }
     }
+
+
 }

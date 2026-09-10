@@ -1,8 +1,8 @@
-import { FunctionMesh } from "./complex-geometry/Function";
+import { Function } from "./complex-geometry/FunctionClass";
 import { Point } from "./base-geometry/Point";
 import { Vector } from "./base-geometry/Vector";
-import { VectorField } from "./complex-geometry/VectorField";
-import { SpaceCurve } from "./complex-geometry/SpaceCurve";
+import { VectorField } from "./complex-geometry/VectorFieldClass";
+import { SpaceCurve } from "./complex-geometry/SpaceCurveClass";
 
 /** 
  * Int switch makes life easy
@@ -17,19 +17,19 @@ export const GeometryContainer = (type, props) => {
     let geometry = null
     switch (type) {
         case 0:
-            geometry = FunctionMesh(props)
+            geometry = new Function(props)
             break
         case 1:
-            geometry = {group: Point(props), type: 1}
+            geometry = {out: Point(props), type: 1}
             break
         case 2:
             geometry = Vector(props)
             break
         case 3:
-            geometry = VectorField(props)
+            geometry = new VectorField(props)
             break
         case 4:
-            geometry = SpaceCurve(props)
+            geometry = new SpaceCurve(props)
             break
         default:
             throw new Error('Invalid type passed to GeometryContainer!')
