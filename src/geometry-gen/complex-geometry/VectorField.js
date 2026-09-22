@@ -2,28 +2,28 @@ import { Group, Vector3, Color } from "three"
 import { Vector } from "../base-geometry/Vector"
 import { evaluate, N, assign } from "@cortex-js/compute-engine";
 
-const MAXSIZE = 20
+const MAXSIZE = 75
+const MAXSLICE = 10
+const STEP = 0.2
 
 /* makes vector field */
 export const VectorField = (props) => {
     /* kwargs */
     let {eqs, scale, sliceranges, update} = props
     /* init */
-    const step = scale / MAXSIZE
-    const vecsize = MAXSIZE * 2
+    const vecsize = (MAXSIZE * 2) / STEP
     const vecs = new Group()
-    /* we store all vecs to avoid having to reevaluate */
+    /* cache all vecs to avoid having to reevaluate, as loops are expensive */
     const slices = Array(vecsize).fill().map(()=>{return Array(vecsize).fill().map(()=>Array(vecsize).fill())})
     // generate the list of vectors
-    let i = 0
-    let j = 0
-    let k = 0
-    for (let x = -scale; x < scale; x += 1) {
-        for (let y = -scale; y < scale; y += 1) {
-            for (let z = -scale; z < scale; z += 1) {
-                assign('x', x)
-                assign('y', y)
-                assign('z', z)
+    const xyz = {x: -MAXSIZE, y: -MAXSIZE, z: -MAXSIZE}
+    for (let i = -vecsize; i < vecsize; i += 1) {
+        for (let j = -vecsize; j < vecsize; j += 1) {
+            xyz.z = -MAXSIZE
+            for (let k = -vecsize; k < vecsize; k += 1) {
+                assign('x', xyz.x)
+                assign('y', xyz.y)
+                assign('z', xyz.z)
 
                 let add = true  // prevents nan values from being included in vecs
                 const values = {'x': null, 'y': null, 'z': null}
@@ -43,8 +43,8 @@ export const VectorField = (props) => {
 
                 if (add) {
                     let mesh = Vector({
-                        init: new Vector3(x, z, y), 
-                        vec: (new Vector3(values.x, values.z, values.y)).normalize(), 
+                        init: dir,
+                        vec: colorvec, 
                         color: new Color().setRGB(colorvec.x, colorvec.z, colorvec.y),
                         vfld: true,
                     })
@@ -54,18 +54,13 @@ export const VectorField = (props) => {
                         throw new Error(`${e}`)
                     }
                 }
-                k = k < vecsize-1 ? k + 1 : k
+                xyz.z += STEP
             }
-            j = j < vecsize-1 ? j + 1 : j
-            k = 0
+            xyz.y += STEP           
         }
-        i = i < vecsize-1 ? i + 1 : i
-        j = 0
+        xyz.x += STEP
     }
-
-    i = 0
-    j = 0
-    k = 0
+    
     // now only add the desired ones
     for (let x = -sliceranges[0]; x < sliceranges[0]; x++) {
         for (let y = -sliceranges[1]; y < sliceranges[1]; y++) {
@@ -86,7 +81,13 @@ export const VectorField = (props) => {
 
     return {
         group: vecs,
-        eqs: eqs,
-        slices: slices
+        xSlices: sliceranges[0],
+        ySlices: sliceranges[1],
+        zSlices: sliceranges[2],
+        slices: slices,
+        xMax: scale,
+        yMax: scale,
+        zMax: scale,
+        type: 3
     }
 }

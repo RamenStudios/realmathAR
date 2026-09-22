@@ -12,12 +12,12 @@ const defaultvec2 = {'vec': {'x': '-1', 'y': '-1', 'z': '-1'}, 'init': {'x': '0'
 const defaultpt = {'x': '1', 'y': '1', 'z': '1'}
 const defaultscrv = {'x': '//cos//left(t//right)', 'y': '//sin//left(t//right)', 'z': '0.1t'}
 const defaultvfld = {'x': 'x-xy', 'y': 'x-y', 'z': '0'}
-// const defaults = {'Vec 1': defaultvec, 'Pt 1': defaultpt, 'Func 1': defaultfunc}
+const defaults = {'Vec 1': defaultvec, 'Pt 1': defaultpt, 'Func 1': defaultfunc}
 // const defaults = {'Vec 1': defaultvec, 'Vec 2': defaultvec2, 'Pt 1': defaultpt}
 // const defaults = {'Vec 1': defaultvec2}
 // const defaults = {'Func 1': defaultfunc, 'Func 2': {'left': 'x^2+//left(y+1//right)^2+z^2', 'right': '1'}}
 // const defaults = {'Pt 1': defaultpt, 'Pt 2': {'x': '0', 'y': '0', 'z': '1'}}
-const defaults = {'SCrv 1': defaultscrv, 'VFld 1': defaultvfld, 'Vec 1': defaultvec}
+// const defaults = {'SCrv 1': defaultscrv, 'VFld 1': defaultvfld, 'Vec 1': defaultvec}
 
 const BASE_URL = 'https://ndlearning.8thwall.app/realmath/'
 

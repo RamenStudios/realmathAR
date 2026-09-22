@@ -34,8 +34,8 @@ const ProcessFunc = (value) => {
     const eq = parse(eqstring.replaceAll('//', '\\'))  // fixes latex delimiters
     /* eslint-disable-next-line no-console */
     console.log(eq.json)
-    return GeometryContainer(1, {
-        equation: eq, 
+    return GeometryContainer(0, {
+        eqs: eq, 
         scalein: null, 
         sizein: null, 
         color: 0xda0fdf,

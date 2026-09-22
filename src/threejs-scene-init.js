@@ -1,24 +1,30 @@
-// Define an 8th Wall XR Camera Pipeline Module that adds a cube to a threejs scene on startup.
-import * as THREE from 'three';
-import { GUI } from 'dat.gui';
+import * as THREE from 'three'
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import GUI from 'lil-gui'
 import { Parser } from './input-processing/Parser';
 import { Processor } from './input-processing/Processor';
-import { BaseComponentGui } from './gui/BaseComponentGui';
-import { GuiCallbacks } from './gui/GuiCallbacks';
-import { VectorFieldCallback } from './callbacks/VectorFieldCallback';
 
-// allows vars to be updated by externalgui callback
-const vars = {
-  'scenescale': 0.5,
-  'axisscale': 1,
-  'size': 30,
-  'scale': 10,
-  't': 0,
-  'slices': [9, 9, 1], 
-}
+/* *******************************TODO**********************************
+  * Migrate to lil-gui, dat-gui is outdated
+  * * lil-gui also supports easier color sliders
+  * Untangle gui callbacks
+  * Make axis generation less messy
+  *  *  tbh just move back to axis helper probably
+  * Add color changer callbacks
+  * Update to current mathlive
+  * ???
+  * profit
+********************************************************************* */
 
-const containers = {
-  'vflds': []
+/* initializing range constraints + steps */
+const GlobalRanges =    {
+                            axis: [75, 1],
+                            t: [100, 0.1]
+                        }
+
+async function CallbackCaller (callback, animate) {
+  const prommy = await callback()
+  animate()
 }
 
 export const initScenePipelineModule = () => {
@@ -26,16 +32,12 @@ export const initScenePipelineModule = () => {
 
   // Populates a cube into an XR scene and sets the initial camera position.
   const initXrScene = ({scene, camera, renderer}) => {
-    // Enable shadows in the rednerer.
-    renderer.shadowMap.enabled = true
-
-    const callbacks = {
-      'vflds': (() => {
-        VectorFieldCallback(vars.slices, containers.vflds)
-        renderer.render(scene, camera)
-      }),
+    const animate = () => {
+      renderer.render();
     }
 
+    // Enable shadows in the rednerer.
+    renderer.shadowMap.enabled = true
 
     // Add some light to the scene.
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5)
@@ -43,82 +45,154 @@ export const initScenePipelineModule = () => {
     directionalLight.castShadow = true
     scene.add(directionalLight)
 
-    /* axes */
+    /* axes and grid */
+    const axes = new THREE.AxesHelper(10)
+    const grid = new THREE.GridHelper(10, 10, 0x9bdc6e, 0x333333)
+
+    /* group that will hold components */
+    const Components = new THREE.Group()
+
+    /* global params affect more than 1 object */
     const params = {
-      showAxes: true,
-      axisMax: 10,
-      scale: 1.0,
-      t: 0,
-      xSlices: vars.slices[0],
-      ySlices: vars.slices[1],
-      zSlices: vars.slices[2],
+        scale: 1.0,
     }
 
-    /* could use axishelper but planes are more helpful visually */
-    /* order: x, y, z */
-    const axisPlanes = [
-      [new THREE.PlaneGeometry(10, 10), 0xff0000],
-      [new THREE.PlaneGeometry(10, 10), 0x0000ff],
-      [new THREE.PlaneGeometry(10, 10), 0x00ff00],
-    ]
-    /* necessary rotations for x and z */
-    axisPlanes[0][0].rotateX(Math.PI / 2)
-    axisPlanes[2][0].rotateY(Math.PI / 2)
+    const gui = new GUI()
 
-    /* make group of planes, set all to receive shadow */
-    const axes = new THREE.Group()
-    for (const plane of axisPlanes) {
-      const axis = new THREE.Mesh(plane[0], new THREE.MeshBasicMaterial({
-        color: plane[1],
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.4,
-      }))
-      axes.add(axis)
-    }
-
-    /* TODO: add outlines to axes to increase visibility */
-
-    axes.scale.set(vars.scenescale, vars.scenescale, vars.scenescale)
-    axes.receiveShadow = true
-    axes.castShadow = false
-    axes.visible = true
+    const genFolder = gui.addFolder('Global Variables')
+    genFolder.add(axes, 'visible').name('axes visible?')
+    genFolder.add(grid, 'visible').name('grid visible?')
+    genFolder.add(params, 'scale', 0, 1, 0.1).onChange((value) => {
+      axes.scale.set(value, value, value)
+      grid.scale.set(value, value, value)
+      Components.scale.set(value, value, value)
+    })
 
     scene.add(axes)
+    scene.add(grid)
 
-    // GUI - allows users to toggle axis visibility
-    const gui = new GUI({width: 250})
-    gui.domElement.id = 'gui'
-
-    const inputvalues = Parser()
-    const components = Processor(inputvalues)
-    const componentGroup = new THREE.Group()
-
-    /* makes component visibility togglable */
-    const componentGui = gui.addFolder('Components')
-    if (components.length > 0) {
-      for (const group of components) {
-        let [name, mesh] = group
-        if (name.includes('VFld')) {
-          containers.vflds.push(mesh)
+    /* callback when vfld slices changed */
+    const VectorFieldCallback = (value, index, vfld) => {
+        /* clear old slices from display */
+        vfld.group.children = []
+        let i = 0 
+        let j = 0
+        let k = 0
+        /* get desired slices from slice cache */
+        for (let x = -vfld.xSlices; x < vfld.xSlices; x++) {
+            for (let y = -vfld.ySlices; y < vfld.ySlices; y++) {
+                for (let z = -vfld.zSlices; z < vfld.zSlices; z++) {
+                    try {
+                        vfld.group.add(vfld.slices[i][j][k])
+                    } catch (e) {
+                        console.error(`${e}`)
+                    }
+                    k+=1
+                }
+                k = 0
+                j+=1
+            }
+            j = 0
+            i+=1
         }
-        componentGroup.add(mesh.group)
-        BaseComponentGui(params, componentGui, mesh, name, vars, callbacks)
-      }
+        animate()
     }
 
-    componentGroup.scale.set(vars.scenescale, vars.scenescale, vars.scenescale)
-    
-    scene.add(componentGroup)
+    /* ****************************************************************************************
+      GUI INITIALIZATION FOR EACH COMPONENT
+    **************************************************************************************** */
+    const GuiInit = (gui, component) => {
+        /* for components affected by range constraints */
+        const RangeSlider = (callback = null) => {
+            gui
+            .add(component, 'scale', 5, GlobalRanges.axis[0], GlobalRanges.axis[1])
+            .name(`axis +-range (x,y,z)`)
+            .onFinishChange(() => {
+                if (callback !== null) {
+                    CallbackCaller(callback, animate)
+                }
+            })
+        }
+        /* for components with flat colors */
+        const ColorSlider = (obj, name=null) => {
+            if (name !== null) {  
+              gui.addColor(obj.material, 'color').name(name)
+            } else {
+              gui.addColor(obj.material, 'color')
+            }
+        }
+        /* all will have visibility toggle */
+        gui.add(component.out, 'visible')
+        /* gui composition by component type */
+        switch (component.type) {
+            // func
+            case 0:
+                RangeSlider(component.functionCallback)
+                break
+            // pt
+            case 1:
+                ColorSlider(component.out)
+                break;
+            // vec
+            case 2:
+                gui
+                .addColor(component.out.children[0].material, 'color')
+                .onChange((value) => {
+                  component.out.children[1].material.color = value.clone();
+                });
+                break
+            // vfld
+            case 3:
+                /**
+                 *  SLICE UPDATERS
+                 *  having a separate one for each vFld prevents too many concurrent rerenders 
+                 *  map so as to not rewrite 3 lines or store arbitrary array
+                 **/
+                const sliceFolder = gui.addFolder('Vectors Along []-Axis');
+                (['x', 'y', 'z']).map((coord) => {
+                    sliceFolder
+                      .add(component.slices, coord, 1, GlobalRanges.axis[0], GlobalRanges.axis[1])
+                      .name(`${coord}-axis`)
+                      .onFinishChange(()=>{
+                        component.vecsCallback(coord);
+                        animate();
+                      });
+                })
+                break
+            // scrv
+            case 4:
+                RangeSlider(component.curveCallback);
+                gui
+                .add(component, 't', -GlobalRanges.t[0], GlobalRanges.t[0], GlobalRanges.t[1])
+                .onChange(() => {component.tCallback()});
+                ColorSlider(component.line, 'curve color');
+                ColorSlider(component.point, 'point color');
+                break
+        }
+    }
+    /* *************************************************************************************** */
 
-    /* sets up the rest of the gui */
-    GuiCallbacks(params, gui, vars, axes, componentGroup, callbacks, renderer, scene, camera)
+    /* extract components from URL, init their GUIs, prepare for scene addition */
+    Processor(Parser()).map((component) => {
+      console.log(component)
+      let [name, obj] = component
+      console.log(obj)
+      let newFolder = gui.addFolder(name)
+      GuiInit(newFolder, obj)
+      Components.add(obj.out)
+    })
+
+    console.log('components complete')
+
+    scene.add(Components)
 
     // Set the initial camera position relative to the scene we just laid out. This must be at a
     // height greater than y=0.
-    camera.position.set(0, 2, 2)
+    camera.position.set(0, 2, 1)
     camera.up = new THREE.Vector3( 0, 0, 1 );
-  }
+
+    console.log(Components)
+  };
 
   // Return a camera pipeline module that adds scene elements on start.
   return {
@@ -130,7 +204,9 @@ export const initScenePipelineModule = () => {
     // XR8.Threejs scene to be ready before we can access it to add content. It was created in
     // XR8.Threejs.pipelineModule()'s onStart method.
     onStart: ({canvas}) => {
+      console.log('in onStart')
       const {scene, camera, renderer} = XR8.Threejs.xrScene()  // Get the 3js scene from XR8.Threejs
+      console.log(camera)
 
       initXrScene({scene, camera, renderer})  // Add objects set the starting camera position.
 
